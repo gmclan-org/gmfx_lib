@@ -121,7 +121,7 @@ function fx_animation(_params = {}) constructor {
 	}
 	
 	/// @chainable
-	static color = function(param = "", to_val = 0, frames = game_get_speed(gamespeed_fps)) {
+	static color = function(param = "", to_val = c_white, frames = game_get_speed(gamespeed_fps)) {
 		self.anim(param, to_val, frames, merge_color);
 		return self;
 	}
