@@ -1,0 +1,13 @@
+{
+  "$GMScript":"",
+  "%Name":"fx_ease",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"fx_ease",
+  "parent":{
+    "name":"library",
+    "path":"folders/Objects/library.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

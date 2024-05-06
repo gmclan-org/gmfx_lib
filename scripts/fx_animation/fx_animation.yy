@@ -1,0 +1,13 @@
+{
+  "$GMScript":"",
+  "%Name":"fx_animation",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"fx_animation",
+  "parent":{
+    "name":"library",
+    "path":"folders/Objects/library.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}
