@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"fx_animation",
   "parent":{
-    "name":"library",
-    "path":"folders/Objects/library.yy",
+    "name":"gmfx_lib",
+    "path":"folders/gmfx_lib.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

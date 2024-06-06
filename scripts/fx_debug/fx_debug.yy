@@ -6,7 +6,7 @@
   "name":"fx_debug",
   "parent":{
     "name":"demo",
-    "path":"folders/Objects/demo.yy",
+    "path":"folders/demo.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

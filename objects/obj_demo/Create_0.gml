@@ -1,7 +1,5 @@
 	params = {
 		scale: 0,
-		scale_x: 1,
-		scale_y: 1,
 		alpha: 0,
 		color: c_white,
 		angle: 0,
@@ -12,7 +10,7 @@
 	fx = new fx_animation(params);
 	
 	fx
-		.ease("scale", 2, 80,fx_ease_type.out_elastic).anim("alpha", 1)
+		.ease("scale", 2, 80, fx_ease_type.out_elastic).anim("alpha", 1)
 		.next()
 		.ease("scale", 1,,fx_ease_type.smoothest_step).color("color", #22ffff).ease("x", room_width-100,,fx_ease_type.in_out_back).anim("y", room_height-100).ease("angle", 90,,fx_ease_type.in_out_cubic)
 		.next()

@@ -10,15 +10,14 @@
   },
   "defaultScriptType":1,
   "Folders":[
-    {"$GMFolder":"","%Name":"Objects","folderPath":"folders/Objects.yy","name":"Objects","resourceType":"GMFolder","resourceVersion":"2.0",},
-    {"$GMFolder":"","%Name":"library","folderPath":"folders/Objects/library.yy","name":"library","resourceType":"GMFolder","resourceVersion":"2.0",},
-    {"$GMFolder":"","%Name":"demo","folderPath":"folders/Objects/demo.yy","name":"demo","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"demo","folderPath":"folders/demo.yy","name":"demo","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"gmfx_lib","folderPath":"folders/gmfx_lib.yy","name":"gmfx_lib","resourceType":"GMFolder","resourceVersion":"2.0",},
   ],
   "IncludedFiles":[],
   "isEcma":false,
   "LibraryEmitters":[],
   "MetaData":{
-    "IDEVersion":"2024.4.0.137",
+    "IDEVersion":"2024.4.1.152",
   },
   "name":"gmfx_lib",
   "resources":[
