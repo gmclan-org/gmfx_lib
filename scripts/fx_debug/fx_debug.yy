@@ -1,5 +1,5 @@
 {
-  "$GMScript":"",
+  "$GMScript":"v1",
   "%Name":"fx_debug",
   "isCompatibility":false,
   "isDnD":false,

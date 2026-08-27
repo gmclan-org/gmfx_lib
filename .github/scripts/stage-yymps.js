@@ -79,7 +79,7 @@ function main() {
 
   // <package>.yyp
   const packageYyp = {
-    $GMProject: "",
+    $GMProject: "v1",
     "%Name": PACKAGE_ID,
     AudioGroups: yyp.AudioGroups,
     configs: yyp.configs,
@@ -93,7 +93,7 @@ function main() {
       PackageType: "Asset",
       PackageName: PACKAGE_ID,
       PackageID: PACKAGE_ID,
-      PackagePublisher: "gnysek",
+      PackagePublisher: "gmclan.org",
       PackageVersion: version,
     },
     name: PACKAGE_ID,
