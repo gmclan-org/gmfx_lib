@@ -31,8 +31,18 @@ jobs:
           cd stage/gmfx_lib
           zip -r -X "../../gmfx_lib.yymps" .
 
+      - name: Stage prefab .yymps package contents
+        run: node .github/scripts/stage-yymps.js "${{ steps.version.outputs.version }}" stage/gmfx_lib-prefab --with-prefab
+
+      - name: Zip prefab .yymps package
+        run: |
+          cd stage/gmfx_lib-prefab
+          zip -r -X "../../gmfx_lib.gmclan-org-${{ steps.version.outputs.version }}.yymps" .
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: gmfx_lib.yymps
+          files: |
+            gmfx_lib.yymps
+            gmfx_lib.gmclan-org-${{ steps.version.outputs.version }}.yymps
           generate_release_notes: true

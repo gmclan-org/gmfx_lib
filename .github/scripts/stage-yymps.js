@@ -4,8 +4,9 @@
 // library itself, excluding the demo project/objects/room/sprite.
 // Actual zipping is left to the `zip` CLI in the workflow step.
 //
-// Usage: node stage-yymps.js <version> <stageDir>
+// Usage: node stage-yymps.js <version> <stageDir> [--with-prefab]
 // version: semver string, e.g. "0.2.0" (no leading "v")
+// --with-prefab: also emit prefab.json (for the gmclan-org prefab package variant)
 
 const fs = require("fs");
 const path = require("path");
@@ -23,8 +24,9 @@ function readJson5(filePath) {
 function main() {
   const version = process.argv[2];
   const stageDir = process.argv[3];
+  const withPrefab = process.argv.includes("--with-prefab");
   if (!version || !/^\d+\.\d+\.\d+$/.test(version) || !stageDir) {
-    console.error("Usage: node stage-yymps.js <version like 0.2.0> <stageDir>");
+    console.error("Usage: node stage-yymps.js <version like 0.2.0> <stageDir> [--with-prefab]");
     process.exit(1);
   }
 
@@ -106,6 +108,41 @@ function main() {
   };
   writeGmJson(path.join(stageDir, `${PACKAGE_ID}.yyp`), packageYyp);
 
+  // prefab.json - metadata for GameMaker's upcoming prefab support
+  if (withPrefab) {
+    const prefab = {
+      $PrefabMetadata: "v2",
+      Author: "gmclan.org",
+      Description: "gmfx_lib animation lib",
+      DisplayName: "gmfx_lib animation lib",
+      Exports: libResources.map((r) => ({
+        $PrefabExportMetadata: "v4",
+        AssetName: r.id.name,
+        Description: resourceTypeToDescription(readJson5(path.join(ROOT, r.id.path)).resourceType),
+        DisplayName: r.id.name,
+        FolderPath: PACKAGE_ID,
+        ResourceType: readJson5(path.join(ROOT, r.id.path)).resourceType,
+        ResourceVersion: 1,
+      })),
+      PackageId: `${PACKAGE_ID}.gmclan-org`,
+      Version: version,
+    };
+    writeGmJson(path.join(stageDir, "prefab.json"), prefab);
+
+    // package.json - copied from the repo root template, with version, the
+    // packaged .yymps filename, and the icon data refreshed from gm-prefab.png
+    // so the template file can't drift out of sync with the actual image.
+    const templatePath = path.join(ROOT, "package.json");
+    const pkg = JSON.parse(fs.readFileSync(templatePath, "utf8"));
+    pkg.version = version;
+    pkg.files = [`${PACKAGE_ID}.gmclan-org-${version}.yymps`];
+    pkg.gm.icon.data = fs.readFileSync(path.join(ROOT, "gm-prefab.png")).toString("base64");
+    fs.writeFileSync(
+      path.join(stageDir, "package.json"),
+      JSON.stringify(pkg, null, 2) + "\n"
+    );
+  }
+
   // copy each resource's folder (e.g. scripts/fx_animation/*) into the stage dir
   for (const r of libResources) {
     const resDir = path.dirname(r.id.path);
@@ -118,6 +155,26 @@ function main() {
   }
 
   console.log(`Staged package contents in ${stageDir}`);
+}
+
+// Maps a GameMaker resourceType (e.g. "GMScript") to the human-readable
+// description GameMaker shows for that asset kind in prefab.json.
+function resourceTypeToDescription(resourceType) {
+  const map = {
+    GMScript: "Script",
+    GMObject: "Object",
+    GMSprite: "Sprite",
+    GMShader: "Shader",
+    GMFont: "Font",
+    GMRoom: "Room",
+    GMPath: "Path",
+    GMSound: "Sound",
+    GMTimeline: "Timeline",
+    GMSequence: "Sequence",
+    GMAnimCurve: "Animation Curve",
+    GMTileSet: "Tile Set",
+  };
+  return map[resourceType] || resourceType;
 }
 
 // GameMaker's own files use trailing commas after every entry/array item.
