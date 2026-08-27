@@ -23,8 +23,13 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Build .yymps package
-        run: node .github/scripts/build-yymps.js "${{ steps.version.outputs.version }}"
+      - name: Stage .yymps package contents
+        run: node .github/scripts/stage-yymps.js "${{ steps.version.outputs.version }}" stage/gmfx_lib
+
+      - name: Zip .yymps package
+        run: |
+          cd stage/gmfx_lib
+          zip -r -X "../../gmfx_lib.yymps" .
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
