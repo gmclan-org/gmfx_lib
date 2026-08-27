@@ -128,19 +128,6 @@ function main() {
       Version: version,
     };
     writeGmJson(path.join(stageDir, "prefab.json"), prefab);
-
-    // package.json - copied from the repo root template, with version, the
-    // packaged .yymps filename, and the icon data refreshed from gm-prefab.png
-    // so the template file can't drift out of sync with the actual image.
-    const templatePath = path.join(ROOT, "package.json");
-    const pkg = JSON.parse(fs.readFileSync(templatePath, "utf8"));
-    pkg.version = version;
-    pkg.files = [`${PACKAGE_ID}.gmclan-org-${version}.yymps`];
-    pkg.gm.icon.data = fs.readFileSync(path.join(ROOT, "gm-prefab.png")).toString("base64");
-    fs.writeFileSync(
-      path.join(stageDir, "package.json"),
-      JSON.stringify(pkg, null, 2) + "\n"
-    );
   }
 
   // copy each resource's folder (e.g. scripts/fx_animation/*) into the stage dir
