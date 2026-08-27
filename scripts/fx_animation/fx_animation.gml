@@ -76,29 +76,30 @@ function fx_animation(_params = {}) constructor {
 	/// @return {Bool} true if every anim() in the current sequence has reached its frame count
 	static __step = function() {
 		if (self.finished()) return true; // already played everything that was possible
-		
-		var _c = undefined, _f = undefined, _p = "";
+
+		var _c = undefined, _f = undefined, _p = "", _local_frame = 0;
 		var _done = true;
 		for (var i = 0, n = array_length(self.__queue[__playback_step]); i < n; i++) {
 			_c = self.__queue[__playback_step][i];
-			
-			if (self.__playback_frame <= _c.frames) {
+			_local_frame = self.__playback_frame - _c.delay;
+
+			if (_local_frame >= 1 and _local_frame <= _c.frames) {
 				if (struct_exists(self.__params, _c.param)) {
-				
+
 					_f = (is_undefined(_c.func) or !is_callable(_c.func)) ? lerp : _c.func;
-				
-					self.params[$ _c.param] = _f(self.__params[$ _c.param], _c.to_val, min(1, __playback_frame/_c.frames));
+
+					self.params[$ _c.param] = _f(self.__params[$ _c.param], _c.to_val, min(1, _local_frame/_c.frames));
 					self.__override_apply(_c.param, self.params[$ _c.param]);
 				}
 			}
-			
-			if (_c.frames > self.__playback_frame) {
+
+			if (_c.delay + _c.frames > self.__playback_frame) {
 				_done = false;
 			}
-			
+
 			//_done = _done && (_c.frames < self.__playback_frame);
 		}
-		
+
 		return _done;
 	}
 	
@@ -129,56 +130,62 @@ function fx_animation(_params = {}) constructor {
 	/// @param {String} param   name of a key existing in `params`
 	/// @param {Real} to_val    target value
 	/// @param {Real} frames    duration in frames
+	/// @param {Real} delay     frames to wait (within the current sequence) before this anim starts;
+	///                         value stays at its start value until the delay has elapsed
 	/// @param {Function} func  interpolation function(from, to, amt), default is lerp
 	/// @chainable
-	static anim = function(param = "", to_val = 0, frames = game_get_speed(gamespeed_fps), func = undefined) {
+	static anim = function(param = "", to_val = 0, frames = game_get_speed(gamespeed_fps), delay = 0, func = undefined) {
 		array_push(self.__queue[__queue_i], {
 			param,
 			to_val,
 			frames,
-			func
+			func,
+			delay
 		});
-		
-		self.__queue_time[__queue_i] = max(self.__queue_time[__queue_i], frames);
-		
+
+		self.__queue_time[__queue_i] = max(self.__queue_time[__queue_i], delay + frames);
+
 		return self;
 	}
-	
-	/// @desc same as anim(), but queues the same to_val/frames/func for a list of params at once
+
+	/// @desc same as anim(), but queues the same to_val/frames/delay/func for a list of params at once
 	/// @param {Array<String>} params
 	/// @param {Real} to_val
 	/// @param {Real} frames
+	/// @param {Real} delay
 	/// @param {Function} func
 	/// @not-chainable (returns undefined; call anim()/anim_more() again to keep chaining)
-	static anim_more = function(params = [""], to_val = 0, frames = game_get_speed(gamespeed_fps), func = undefined) {
+	static anim_more = function(params = [""], to_val = 0, frames = game_get_speed(gamespeed_fps), delay = 0, func = undefined) {
 		for(var i = 0, n = array_length(params); i < n; i++) {
-			self.anim(params[i], to_val, frames, func);
+			self.anim(params[i], to_val, frames, delay, func);
 		}
 	}
-	
+
 	/// @desc shortcut for anim() using merge_color as the interpolation function
 	/// @param {String} param
 	/// @param {Constant.Color} to_val
 	/// @param {Real} frames
+	/// @param {Real} delay
 	/// @chainable
-	static color = function(param = "", to_val = c_white, frames = game_get_speed(gamespeed_fps)) {
-		self.anim(param, to_val, frames, merge_color);
+	static color = function(param = "", to_val = c_white, frames = game_get_speed(gamespeed_fps), delay = 0) {
+		self.anim(param, to_val, frames, delay, merge_color);
 		return self;
 	}
-		
+
 	/// @desc shortcut for anim() using fx_ease() as the interpolation function
 	/// @param {String} param
 	/// @param {Real} to_val
 	/// @param {Real} frames
+	/// @param {Real} delay
 	/// @param {Enum.fx_ease_type} _ease  if omitted, falls back to plain anim() (lerp)
 	/// @chainable
-	static ease = function(param = "", to_val = 0, frames = game_get_speed(gamespeed_fps), _ease = undefined) {
+	static ease = function(param = "", to_val = 0, frames = game_get_speed(gamespeed_fps), delay = 0, _ease = undefined) {
 		if (is_numeric(_ease)) {
-			self.anim(param, to_val, frames, self.__make_fx_ease(_ease));
+			self.anim(param, to_val, frames, delay, self.__make_fx_ease(_ease));
 		} else {
-			self.anim(param, to_val, frames);
+			self.anim(param, to_val, frames, delay);
 		}
-		
+
 		return self;
 	}
 	
