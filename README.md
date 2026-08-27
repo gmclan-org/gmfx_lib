@@ -1,3 +1,5 @@
+# GMFX - animations, easing & tweeenings library
+
 Simple animations / easing / tweeenings library.
 
 Check [Wiki](https://github.com/gmclan-org/gmfx_lib/wiki) for docs.
