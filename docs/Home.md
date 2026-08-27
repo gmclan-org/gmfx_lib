@@ -59,6 +59,19 @@ For ease types, `fx_ease_type` enum can be used (except of `fx_ease_type.__total
 Starts next "sequence" of params to animate, which would follow after last one from previous sequence is done.
 
 ---
+### `.on_finish(func)`
+
+Sets a single callback fired once, when the CURRENT sequence finishes (the one being built since the last `.next()`, or since creation if called before any `.next()`). Unlike `.anim()`/`.color()`/`.ease()`, this is not per-param animation - only one callback per sequence. Calling it again for the same sequence replaces the previous callback.
+
+```gml
+fx.anim("alpha", 1, 30)
+  .on_finish(function() { show_debug_message("fade in done"); })
+  .next()
+  .anim("alpha", 0, 30, 60) // delayed fade out
+  .on_finish(function() { instance_destroy(); });
+```
+
+---
 ### `.override(<instance_id>)`
 
 Sets instance in which variables will be overridden if they matches name of params struct. There's few "magic" params, that would update instance built-in variables, which can be used as aliases:

@@ -3,6 +3,7 @@ function fx_animation(_params = {}) constructor {
 	
 	__queue = [[]];
 	__queue_time = [0];
+	__on_finish = [undefined];
 	__queue_i = 0;
 	__playback_step = 0;
 	__playback_frame = 1;
@@ -46,6 +47,8 @@ function fx_animation(_params = {}) constructor {
 		if (self.__playback_frame < self.__queue_time[ self.__playback_step ]) {
 			self.__playback_frame++;
 		} else {
+			var _finished_step = self.__playback_step;
+
 			if (self.__playback_step < self.__queue_i) {
 				self.__playback_step++;
 				self.__playback_frame = 1;
@@ -55,7 +58,11 @@ function fx_animation(_params = {}) constructor {
 					self.restart();
 				}
 			}
-			
+
+			if (is_callable(self.__on_finish[_finished_step])) {
+				self.__on_finish[_finished_step]();
+			}
+
 			return true;
 		}
 		
@@ -203,8 +210,20 @@ function fx_animation(_params = {}) constructor {
 	static next = function() {
 		array_push(self.__queue, []);
 		array_push(self.__queue_time, 0);
+		array_push(self.__on_finish, undefined);
 		__queue_i++;
-		
+
+		return self;
+	}
+
+	/// @desc sets a single callback fired once, when the CURRENT sequence finishes (i.e. the one
+	///       being built since the last next(), or since creation if called before any next()).
+	///       Unlike anim()/color()/ease(), this is not per-param - only one callback per sequence.
+	///       Calling it again for the same sequence replaces the previous callback.
+	/// @param {Function} func
+	/// @chainable
+	static on_finish = function(func = undefined) {
+		self.__on_finish[__queue_i] = func;
 		return self;
 	}
 	
