@@ -1,18 +1,24 @@
-// Stages the contents of a GameMaker .yymps package (metadata.json,
-// <id>.resource_order, <id>.yyp, and the resource folders) containing only the
+// Stages the contents of a GameMaker .yymps package containing only the
 // resources that live inside the "gmfx_lib" folder of the project - i.e. the
 // library itself, excluding the demo project/objects/room/sprite.
 // Actual zipping is left to the `zip` CLI in the workflow step.
 //
+// Plain variant: metadata.json, gmfx_lib.resource_order, gmfx_lib.yyp, resources.
+//
+// --with-prefab variant (GMPM prefab package, layout matches GameMaker's own
+// prefab .yymps files): gmfx_lib.gmclan-org-<version>.{resource_order,yyp,png},
+// prefab.json, package.json, yymanifest.xml, resources.
+//
 // Usage: node stage-yymps.js <version> <stageDir> [--with-prefab]
 // version: semver string, e.g. "0.2.0" (no leading "v")
-// --with-prefab: also emit prefab.json (for the gmclan-org prefab package variant)
 
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const PACKAGE_ID = "gmfx_lib";
+const GMPM_ID = `${PACKAGE_ID}.gmclan-org`;
 
 function readJson5(filePath) {
   // .yy/.yyp files are JSON with trailing commas - strip them before parsing.
@@ -52,20 +58,25 @@ function main() {
 
   fs.mkdirSync(stageDir, { recursive: true });
 
-  // metadata.json
-  const metadata = {
-    package_id: PACKAGE_ID,
-    display_name: PACKAGE_ID,
-    version,
-    package_type: "asset",
-    ide_version: ideVersion,
-  };
-  fs.writeFileSync(
-    path.join(stageDir, "metadata.json"),
-    JSON.stringify(metadata, null, 2)
-  );
+  // metadata.json - only for the plain (non-prefab) .yymps variant; the
+  // GMPM prefab variant uses package.json + prefab.json instead.
+  if (!withPrefab) {
+    const metadata = {
+      package_id: PACKAGE_ID,
+      display_name: PACKAGE_ID,
+      version,
+      package_type: "asset",
+      ide_version: ideVersion,
+    };
+    fs.writeFileSync(
+      path.join(stageDir, "metadata.json"),
+      JSON.stringify(metadata, null, 2)
+    );
+  }
 
-  // <package>.resource_order
+  // <package>.resource_order - named after the GMPM package id when building
+  // the prefab variant, matching GameMaker's own prefab .yymps layout.
+  const baseName = withPrefab ? `${GMPM_ID}-${version}` : PACKAGE_ID;
   const resourceOrder = {
     FolderOrderSettings: [],
     ResourceOrderSettings: libResources.map((r, i) => ({
@@ -74,10 +85,8 @@ function main() {
       path: r.id.path,
     })),
   };
-  writeGmJson(
-    path.join(stageDir, `${PACKAGE_ID}.resource_order`),
-    resourceOrder
-  );
+  const resourceOrderPath = path.join(stageDir, `${baseName}.resource_order`);
+  writeGmJson(resourceOrderPath, resourceOrder);
 
   // <package>.yyp
   const packageYyp = {
@@ -106,9 +115,17 @@ function main() {
     templateType: null,
     TextureGroups: yyp.TextureGroups,
   };
-  writeGmJson(path.join(stageDir, `${PACKAGE_ID}.yyp`), packageYyp);
+  const yypPath2 = path.join(stageDir, `${baseName}.yyp`);
+  writeGmJson(yypPath2, packageYyp);
 
-  // prefab.json - metadata for GameMaker's upcoming prefab support
+  // Files written so far, relative to stageDir, for the yymanifest below.
+  const manifestFiles = [
+    path.relative(stageDir, resourceOrderPath),
+    path.relative(stageDir, yypPath2),
+  ];
+
+  // prefab.json, package.json, icon .png and yymanifest.xml - only for the
+  // GMPM prefab variant, matching GameMaker's own prefab .yymps layout.
   if (withPrefab) {
     const prefab = {
       $PrefabMetadata: "v2",
@@ -124,10 +141,28 @@ function main() {
         ResourceType: readJson5(path.join(ROOT, r.id.path)).resourceType,
         ResourceVersion: 1,
       })),
-      PackageId: `${PACKAGE_ID}.gmclan-org`,
+      PackageId: GMPM_ID,
       Version: version,
     };
-    writeGmJson(path.join(stageDir, "prefab.json"), prefab);
+    const prefabPath = path.join(stageDir, "prefab.json");
+    writeGmJson(prefabPath, prefab);
+    manifestFiles.push(path.relative(stageDir, prefabPath));
+
+    // package.json - copied from the repo root template, with version, the
+    // packaged .yymps filename, and the icon data refreshed from gm-prefab.png
+    // so the template file can't drift out of sync with the actual image.
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+    pkg.version = version;
+    pkg.files = [`${GMPM_ID}-${version}.yymps`];
+    pkg.gm.icon.data = fs.readFileSync(path.join(ROOT, "gm-prefab.png")).toString("base64");
+    const pkgJsonPath = path.join(stageDir, "package.json");
+    fs.writeFileSync(pkgJsonPath, JSON.stringify(pkg, null, 2) + "\n");
+    manifestFiles.push(path.relative(stageDir, pkgJsonPath));
+
+    // <package>.png - the icon, alongside package.json, as a standalone file.
+    const iconPath = path.join(stageDir, `${baseName}.png`);
+    fs.copyFileSync(path.join(ROOT, "gm-prefab.png"), iconPath);
+    manifestFiles.push(path.relative(stageDir, iconPath));
   }
 
   // copy each resource's folder (e.g. scripts/fx_animation/*) into the stage dir
@@ -137,11 +172,36 @@ function main() {
     const destDir = path.join(stageDir, resDir);
     fs.mkdirSync(destDir, { recursive: true });
     for (const file of fs.readdirSync(srcDir)) {
-      fs.copyFileSync(path.join(srcDir, file), path.join(destDir, file));
+      const srcFile = path.join(srcDir, file);
+      const destFile = path.join(destDir, file);
+      fs.copyFileSync(srcFile, destFile);
+      manifestFiles.push(path.relative(stageDir, destFile));
     }
   }
 
+  // yymanifest.xml - lists every packaged file with its MD5 checksum, written
+  // last since it must cover every other file already staged.
+  if (withPrefab) {
+    writeYyManifest(path.join(stageDir, "yymanifest.xml"), stageDir, manifestFiles);
+  }
+
   console.log(`Staged package contents in ${stageDir}`);
+}
+
+function writeYyManifest(manifestPath, stageDir, relativeFiles) {
+  const entries = relativeFiles
+    .map((relPath) => {
+      const md5 = crypto
+        .createHash("md5")
+        .update(fs.readFileSync(path.join(stageDir, relPath)))
+        .digest("hex")
+        .toUpperCase();
+      const xmlPath = relPath.split(path.sep).join("\\");
+      return `\t<file md5="${md5}">${xmlPath}</file>`;
+    })
+    .join("\n");
+  const xml = `﻿<?xml version="1.0" encoding="utf-8"?>\n<files>\n${entries}\n</files>`;
+  fs.writeFileSync(manifestPath, xml);
 }
 
 // Maps a GameMaker resourceType (e.g. "GMScript") to the human-readable
