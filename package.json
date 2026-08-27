@@ -21,7 +21,7 @@
     "shortDescription": "gmfx_lib animation lib",
     "visible": true,
     "ide_versions": {
-      "LTS": ">=2026.1.0"
+      "LTS": ">=2026.0.0"
     },
     "supportedArchitecture": "any",
     "removeDependenciesOnUninstall": "always",

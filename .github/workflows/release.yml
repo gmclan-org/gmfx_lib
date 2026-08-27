@@ -39,10 +39,16 @@ jobs:
           cd stage/gmfx_lib-prefab
           zip -r -X "../../gmfx_lib.gmclan-org-${{ steps.version.outputs.version }}.yymps" .
 
+      - name: Pack prefab package as .tgz
+        run: |
+          cd stage/gmfx_lib-prefab
+          npm pack --pack-destination ../..
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             gmfx_lib.yymps
             gmfx_lib.gmclan-org-${{ steps.version.outputs.version }}.yymps
+            gmclan-org-gmfx_lib-${{ steps.version.outputs.version }}.tgz
           generate_release_notes: true
