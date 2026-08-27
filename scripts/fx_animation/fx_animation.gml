@@ -14,8 +14,12 @@ function fx_animation(_params = {}) constructor {
 	
 	__loop = false;
 	
+	/// @desc binds an instance whose built-in variables (image_alpha, image_angle, ...) will be
+	///       synced whenever a matching param changes; applies current frame values immediately.
+	/// @param {Id.Instance} _id
+	/// @chainable
 	static override = function(_id) {
-		if (instance_exists(_id)) {
+		if (__override != _id and instance_exists(_id)) {
 			__override = _id;
 			//if (__playback_step == 0 and __playback_frame == 1) {
 			self.__step();
@@ -25,7 +29,11 @@ function fx_animation(_params = {}) constructor {
 		return self;
 	}
 	
-	/// @desc returns true when frame ends
+	/// @desc advances playback by exactly 1 frame: applies current frame's values (via __step),
+	///       then moves the frame/sequence cursor forward. Call this once per Step event.
+	///       If already finished and not looping, does nothing and returns true.
+	/// @return {Bool} true if this call ended the current sequence (last frame of it), or if
+	///                the whole animation was already finished; false if mid-sequence.
 	static play = function() {
 		if (self.finished()) {
 			if (!self.__loop) {
@@ -54,11 +62,18 @@ function fx_animation(_params = {}) constructor {
 		return false;
 	}
 		
+	/// @desc enables/disables looping (restarts from sequence 0 once the last sequence finishes)
+	/// @param {Bool} _loop
+	/// @not-chainable
 	static loop = function(_loop = true) {
 		self.__loop = _loop;
 	}
 	
-	// @desc sets variables according to current frame, but without advancing step/frame
+	/// @desc recalculates and writes params for the CURRENT __playback_step/__playback_frame
+	///       (i.e. re-evaluates "now", it does NOT move the cursor forward - that's play()'s job).
+	///       Used by play() each tick, and also called directly by override()/restart() to
+	///       force an immediate re-sync without advancing playback.
+	/// @return {Bool} true if every anim() in the current sequence has reached its frame count
 	static __step = function() {
 		if (self.finished()) return true; // already played everything that was possible
 		
@@ -87,11 +102,18 @@ function fx_animation(_params = {}) constructor {
 		return _done;
 	}
 	
+	/// @desc true if playback is on the last sequence AND has reached/passed its frame count.
+	///       On a looping animation this will still return true briefly at the end of the last
+	///       sequence, right before play() calls restart() on the next call.
+	/// @return {Bool}
 	static finished = function() {
-		if (__playback_step = __queue_i and __playback_frame >= __queue_time[__playback_step]) return true;
+		if (__playback_step == __queue_i and __playback_frame >= __queue_time[__playback_step]) return true;
 		return false;
 	}
 	
+	/// @desc resets playback to sequence 0 / frame 1 and restores params to their initial values
+	///       (the ones passed to the constructor). Also re-applies override sync immediately.
+	/// @not-chainable
 	static restart = function() {
 		self.__playback_step = 0;
 		self.__playback_frame = 0;
@@ -101,6 +123,14 @@ function fx_animation(_params = {}) constructor {
 		self.__playback_frame = 1;
 	}
 	
+	/// @desc queues an animation for a single param in the CURRENT sequence (i.e. since the last
+	///       next(), or since creation). Runs in parallel with any other anim()/color()/ease()
+	///       queued in the same sequence.
+	/// @param {String} param   name of a key existing in `params`
+	/// @param {Real} to_val    target value
+	/// @param {Real} frames    duration in frames
+	/// @param {Function} func  interpolation function(from, to, amt), default is lerp
+	/// @chainable
 	static anim = function(param = "", to_val = 0, frames = game_get_speed(gamespeed_fps), func = undefined) {
 		array_push(self.__queue[__queue_i], {
 			param,
@@ -114,22 +144,34 @@ function fx_animation(_params = {}) constructor {
 		return self;
 	}
 	
+	/// @desc same as anim(), but queues the same to_val/frames/func for a list of params at once
+	/// @param {Array<String>} params
+	/// @param {Real} to_val
+	/// @param {Real} frames
+	/// @param {Function} func
+	/// @not-chainable (returns undefined; call anim()/anim_more() again to keep chaining)
 	static anim_more = function(params = [""], to_val = 0, frames = game_get_speed(gamespeed_fps), func = undefined) {
 		for(var i = 0, n = array_length(params); i < n; i++) {
 			self.anim(params[i], to_val, frames, func);
 		}
 	}
 	
+	/// @desc shortcut for anim() using merge_color as the interpolation function
+	/// @param {String} param
+	/// @param {Constant.Color} to_val
+	/// @param {Real} frames
 	/// @chainable
 	static color = function(param = "", to_val = c_white, frames = game_get_speed(gamespeed_fps)) {
 		self.anim(param, to_val, frames, merge_color);
 		return self;
 	}
 		
+	/// @desc shortcut for anim() using fx_ease() as the interpolation function
 	/// @param {String} param
 	/// @param {Real} to_val
 	/// @param {Real} frames
-	/// @param {Real} _ease
+	/// @param {Enum.fx_ease_type} _ease  if omitted, falls back to plain anim() (lerp)
+	/// @chainable
 	static ease = function(param = "", to_val = 0, frames = game_get_speed(gamespeed_fps), _ease = undefined) {
 		if (is_numeric(_ease)) {
 			self.anim(param, to_val, frames, self.__make_fx_ease(_ease));
@@ -140,6 +182,7 @@ function fx_animation(_params = {}) constructor {
 		return self;
 	}
 	
+	/// @desc builds an interpolation function(a,b,amt) bound to a fixed fx_ease_type, for ease()
 	static __make_fx_ease = function(ease_type) {
 		return method({ease: ease_type}, function(a,b,amt) {
 			/// feather ignore GM1041 once
@@ -147,7 +190,9 @@ function fx_animation(_params = {}) constructor {
 		});
 	}
 	
-	/// @desc sets that from that point, another "stage" of animation will be performed
+	/// @desc closes the current sequence and starts a new one: subsequent anim()/color()/ease()
+	///       calls will run only after everything queued before this next() has finished.
+	/// @chainable
 	static next = function() {
 		array_push(self.__queue, []);
 		array_push(self.__queue_time, 0);
@@ -156,6 +201,8 @@ function fx_animation(_params = {}) constructor {
 		return self;
 	}
 	
+	/// @desc pushes a single param's current value onto the overridden instance, mapping known
+	///       aliases (alpha/angle/blend/color/scale/...) to their image_* built-in variables.
 	static __override_apply = function(_p, _v) {
 		if (!is_undefined(__override)) {
 			if (instance_exists(__override)) {
@@ -222,6 +269,8 @@ function fx_animation(_params = {}) constructor {
 	    }
 	}*/
 		
+	/// @desc copies matching keys from s_from into s_to in place (keeps s_to's struct reference),
+	///       and re-applies override sync for each copied key
 	static __copy_struct_values = function(s_from, s_to) {
 		// this copies values, without loosing reference
 		var _names = struct_get_names(s_from);
@@ -233,6 +282,7 @@ function fx_animation(_params = {}) constructor {
 		}
 	}
 		
+	/// @desc draws current playback state (step, frame, params, finished, loop) at (10,10) for debugging
 	static __debug = function() {
 		draw_text(10, 10, json_stringify({
 			__playback_step,
