@@ -29,7 +29,7 @@ jobs:
       - name: Zip .yymps package
         run: |
           cd stage/gmfx_lib
-          zip -r -X "../../gmfx_lib.yymps" .
+          zip -r -X -D "../../gmfx_lib.yymps" .
 
       - name: Stage prefab .yymps package contents
         run: node .github/scripts/stage-yymps.js "${{ steps.version.outputs.version }}" stage/gmfx_lib-prefab --with-prefab
@@ -37,24 +37,24 @@ jobs:
       - name: Zip prefab .yymps package
         run: |
           cd stage/gmfx_lib-prefab
-          zip -r -X "../../gmfx_lib.gmclan-org-${{ steps.version.outputs.version }}.yymps" .
+          zip -r -X -D "../../org.gmclan.gmfx_lib-${{ steps.version.outputs.version }}.yymps" .
 
       - name: Stage .tgz package contents
         run: |
           mkdir -p stage/tgz/package
-          cp "gmfx_lib.gmclan-org-${{ steps.version.outputs.version }}.yymps" stage/tgz/package/
+          cp "org.gmclan.gmfx_lib-${{ steps.version.outputs.version }}.yymps" stage/tgz/package/
           cp stage/gmfx_lib-prefab.package.json stage/tgz/package/package.json
 
       - name: Pack .tgz
         run: |
           cd stage/tgz
-          tar -czf "../../gmfx_lib.gmclan-org-${{ steps.version.outputs.version }}.tgz" package
+          tar -czf "../../org.gmclan.gmfx_lib-${{ steps.version.outputs.version }}.tgz" package
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             gmfx_lib.yymps
-            gmfx_lib.gmclan-org-${{ steps.version.outputs.version }}.yymps
-            gmfx_lib.gmclan-org-${{ steps.version.outputs.version }}.tgz
+            org.gmclan.gmfx_lib-${{ steps.version.outputs.version }}.yymps
+            org.gmclan.gmfx_lib-${{ steps.version.outputs.version }}.tgz
           generate_release_notes: true

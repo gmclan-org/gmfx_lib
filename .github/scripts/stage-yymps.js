@@ -6,7 +6,7 @@
 // Plain variant: metadata.json, gmfx_lib.resource_order, gmfx_lib.yyp, resources.
 //
 // --with-prefab variant (GMPM prefab package, layout matches GameMaker's own
-// prefab .yymps files): gmfx_lib.gmclan-org-<version>.{resource_order,yyp,png},
+// prefab .yymps files): org.gmclan.gmfx_lib-<version>.{resource_order,yyp,png},
 // prefab.json, package.json, yymanifest.xml, resources.
 //
 // Usage: node stage-yymps.js <version> <stageDir> [--with-prefab]
@@ -18,7 +18,12 @@ const crypto = require("crypto");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const PACKAGE_ID = "gmfx_lib";
-const GMPM_ID = `${PACKAGE_ID}.gmclan-org`;
+// GameMaker's own prefabs (and third-party ones the IDE actually lists, e.g.
+// io.gamemaker.desertshooter, com.eightouncegames.cultured-runtime) use a
+// reverse-DNS PackageId/filename. A package.json-style "name.scope" id (what
+// this used to be) gets installed and downloads fine, but never shows up in
+// the IDE's Prefabs list - confirmed by testing both side by side.
+const GMPM_ID = `org.gmclan.${PACKAGE_ID}`;
 
 function readJson5(filePath) {
   // .yy/.yyp files are JSON with trailing commas - strip them before parsing.
@@ -228,13 +233,15 @@ function resourceTypeToDescription(resourceType) {
   return map[resourceType] || resourceType;
 }
 
-// GameMaker's own files use trailing commas after every entry/array item.
-// Reproduce that style so the output stays consistent with native .yy/.yyp files.
+// GameMaker's own files use trailing commas after every entry/array item,
+// and no space after the ":" in key/value pairs. Reproduce that style so the
+// output stays consistent with native .yy/.yyp files.
 function writeGmJson(filePath, obj) {
   const json = JSON.stringify(obj, null, 2);
   const withTrailingCommas = json
     .replace(/([}\]"0-9a-zA-Z])\n(\s*[}\]])/g, "$1,\n$2")
-    .replace(/,(\s*)$/, "$1"); // no trailing comma after the very last closing brace
+    .replace(/,(\s*)$/, "$1") // no trailing comma after the very last closing brace
+    .replace(/": /g, '":');
   fs.writeFileSync(filePath, withTrailingCommas + (withTrailingCommas.endsWith("\n") ? "" : "\n"));
 }
 
