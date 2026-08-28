@@ -91,7 +91,7 @@ function main() {
   // <package>.yyp
   const packageYyp = {
     $GMProject: "v1",
-    "%Name": PACKAGE_ID,
+    "%Name": baseName,
     AudioGroups: yyp.AudioGroups,
     configs: yyp.configs,
     defaultScriptType: yyp.defaultScriptType,
@@ -107,7 +107,7 @@ function main() {
       PackagePublisher: "gmclan.org",
       PackageVersion: version,
     },
-    name: PACKAGE_ID,
+    name: baseName,
     resources: libResources.map((r) => ({ id: { name: r.id.name, path: r.id.path } })),
     resourceType: "GMProject",
     resourceVersion: "2.0",
@@ -124,8 +124,11 @@ function main() {
     path.relative(stageDir, yypPath2),
   ];
 
-  // prefab.json, package.json, icon .png and yymanifest.xml - only for the
-  // GMPM prefab variant, matching GameMaker's own prefab .yymps layout.
+  // prefab.json, icon .png and yymanifest.xml - only for the GMPM prefab
+  // variant, matching GameMaker's own prefab .yymps layout. package.json is
+  // NOT part of the .yymps itself (GameMaker's own prefabs don't ship one
+  // inside the archive) - it's written as a sibling of stageDir instead, for
+  // the .tgz step to pick up.
   if (withPrefab) {
     const prefab = {
       $PrefabMetadata: "v2",
@@ -151,13 +154,14 @@ function main() {
     // package.json - copied from the repo root template, with version, the
     // packaged .yymps filename, and the icon data refreshed from gm-prefab.png
     // so the template file can't drift out of sync with the actual image.
+    // Written next to stageDir (not inside it) since it isn't part of the
+    // .yymps archive contents.
     const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
     pkg.version = version;
     pkg.files = [`${GMPM_ID}-${version}.yymps`];
     pkg.gm.icon.data = fs.readFileSync(path.join(ROOT, "gm-prefab.png")).toString("base64");
-    const pkgJsonPath = path.join(stageDir, "package.json");
+    const pkgJsonPath = `${stageDir}.package.json`;
     fs.writeFileSync(pkgJsonPath, JSON.stringify(pkg, null, 2) + "\n");
-    manifestFiles.push(path.relative(stageDir, pkgJsonPath));
 
     // <package>.png - the icon, alongside package.json, as a standalone file.
     const iconPath = path.join(stageDir, `${baseName}.png`);

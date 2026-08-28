@@ -43,7 +43,7 @@ jobs:
         run: |
           mkdir -p stage/tgz/package
           cp "gmfx_lib.gmclan-org-${{ steps.version.outputs.version }}.yymps" stage/tgz/package/
-          cp stage/gmfx_lib-prefab/package.json stage/tgz/package/
+          cp stage/gmfx_lib-prefab.package.json stage/tgz/package/package.json
 
       - name: Pack .tgz
         run: |
