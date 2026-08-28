@@ -93,25 +93,32 @@ function main() {
   const resourceOrderPath = path.join(stageDir, `${baseName}.resource_order`);
   writeGmJson(resourceOrderPath, resourceOrder);
 
-  // <package>.yyp
+  // <package>.yyp - the GMPM prefab variant matches the shape GameMaker's own
+  // installed prefabs have on disk (e.g. com.eightouncegames.cultured-runtime):
+  // no Folders, a ForcedPrefabProjectReferences key, and a MetaData with only
+  // IDEVersion. A .yyp missing these didn't error, installed fine via GMPM,
+  // but silently never showed up in the IDE's Prefabs list.
   const packageYyp = {
     $GMProject: "v1",
     "%Name": baseName,
     AudioGroups: yyp.AudioGroups,
     configs: yyp.configs,
     defaultScriptType: yyp.defaultScriptType,
-    Folders: yyp.Folders.filter((f) => f["%Name"] === PACKAGE_ID),
+    Folders: withPrefab ? [] : yyp.Folders.filter((f) => f["%Name"] === PACKAGE_ID),
+    ...(withPrefab ? { ForcedPrefabProjectReferences: [] } : {}),
     IncludedFiles: [],
     isEcma: yyp.isEcma,
     LibraryEmitters: [],
-    MetaData: {
-      IDEVersion: ideVersion,
-      PackageType: "Asset",
-      PackageName: PACKAGE_ID,
-      PackageID: PACKAGE_ID,
-      PackagePublisher: "gmclan.org",
-      PackageVersion: version,
-    },
+    MetaData: withPrefab
+      ? { IDEVersion: ideVersion }
+      : {
+          IDEVersion: ideVersion,
+          PackageType: "Asset",
+          PackageName: PACKAGE_ID,
+          PackageID: PACKAGE_ID,
+          PackagePublisher: "gmclan.org",
+          PackageVersion: version,
+        },
     name: baseName,
     resources: libResources.map((r) => ({ id: { name: r.id.name, path: r.id.path } })),
     resourceType: "GMProject",

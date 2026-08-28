@@ -1,9 +1,9 @@
 {
   "name": "@gmclan-org/gmfx_lib",
-  "version": "0.9.8",
+  "version": "0.9.9",
   "description": "GMFX - animations, easing & tweeenings library.",
   "files": [
-    "org.gmclan.gmfx_lib-0.9.8.yymps"
+    "org.gmclan.gmfx_lib-0.9.9.yymps"
   ],
   "keywords": [
     "GameMaker",
