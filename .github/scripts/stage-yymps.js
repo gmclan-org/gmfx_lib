@@ -166,14 +166,19 @@ function main() {
     // package.json - copied from the repo root template, with version, the
     // packaged .yymps filename, and the icon data refreshed from gm-prefab.png
     // so the template file can't drift out of sync with the actual image.
-    // Written next to stageDir (not inside it) since it isn't part of the
-    // .yymps archive contents.
+    // Written both inside stageDir (GameMaker's own IDE-exported prefab
+    // .yymps files ship package.json inside the archive - confirmed by
+    // comparing against one the IDE built directly) and as a sibling of
+    // stageDir, for the .tgz step to pick up.
     const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
     pkg.version = version;
     pkg.files = [`${GMPM_ID}-${version}.yymps`];
     pkg.gm.icon.data = fs.readFileSync(path.join(ROOT, "gm-prefab.png")).toString("base64");
-    const pkgJsonPath = `${stageDir}.package.json`;
-    fs.writeFileSync(pkgJsonPath, JSON.stringify(pkg, null, 2) + "\n");
+    const pkgJson = JSON.stringify(pkg, null, 2) + "\n";
+    fs.writeFileSync(`${stageDir}.package.json`, pkgJson);
+    const pkgJsonInsidePath = path.join(stageDir, "package.json");
+    fs.writeFileSync(pkgJsonInsidePath, pkgJson);
+    manifestFiles.push(path.relative(stageDir, pkgJsonInsidePath));
 
     // <package>.png - the icon, alongside package.json, as a standalone file.
     const iconPath = path.join(stageDir, `${baseName}.png`);
