@@ -1,15 +1,12 @@
-// Stages the contents of a GameMaker .yymps package containing only the
+// Stages the contents of the GMPM prefab .yymps package containing only the
 // resources that live inside the "gmfx_lib" folder of the project - i.e. the
-// library itself, excluding the demo project/objects/room/sprite.
+// library itself, excluding the demo project/objects/room/sprite. Layout
+// matches GameMaker's own prefab .yymps files:
+// org.gmclan.gmfx_lib-<version>.{resource_order,yyp,png}, prefab.json,
+// package.json, yymanifest.xml, resources.
 // Actual zipping is left to the `zip` CLI in the workflow step.
 //
-// Plain variant: metadata.json, gmfx_lib.resource_order, gmfx_lib.yyp, resources.
-//
-// --with-prefab variant (GMPM prefab package, layout matches GameMaker's own
-// prefab .yymps files): org.gmclan.gmfx_lib-<version>.{resource_order,yyp,png},
-// prefab.json, package.json, yymanifest.xml, resources.
-//
-// Usage: node stage-yymps.js <version> <stageDir> [--with-prefab]
+// Usage: node stage-yymps.js <version> <stageDir>
 // version: semver string, e.g. "0.2.0" (no leading "v")
 
 const fs = require("fs");
@@ -35,9 +32,8 @@ function readJson5(filePath) {
 function main() {
   const version = process.argv[2];
   const stageDir = process.argv[3];
-  const withPrefab = process.argv.includes("--with-prefab");
   if (!version || !/^\d+\.\d+\.\d+$/.test(version) || !stageDir) {
-    console.error("Usage: node stage-yymps.js <version like 0.2.0> <stageDir> [--with-prefab]");
+    console.error("Usage: node stage-yymps.js <version like 0.2.0> <stageDir>");
     process.exit(1);
   }
 
@@ -63,25 +59,9 @@ function main() {
 
   fs.mkdirSync(stageDir, { recursive: true });
 
-  // metadata.json - only for the plain (non-prefab) .yymps variant; the
-  // GMPM prefab variant uses package.json + prefab.json instead.
-  if (!withPrefab) {
-    const metadata = {
-      package_id: PACKAGE_ID,
-      display_name: PACKAGE_ID,
-      version,
-      package_type: "asset",
-      ide_version: ideVersion,
-    };
-    fs.writeFileSync(
-      path.join(stageDir, "metadata.json"),
-      JSON.stringify(metadata, null, 2)
-    );
-  }
-
-  // <package>.resource_order - named after the GMPM package id when building
-  // the prefab variant, matching GameMaker's own prefab .yymps layout.
-  const baseName = withPrefab ? `${GMPM_ID}-${version}` : PACKAGE_ID;
+  // <package>.resource_order - named after the GMPM package id, matching
+  // GameMaker's own prefab .yymps layout.
+  const baseName = `${GMPM_ID}-${version}`;
   const resourceOrder = {
     FolderOrderSettings: [],
     ResourceOrderSettings: libResources.map((r, i) => ({
@@ -107,20 +87,11 @@ function main() {
     configs: yyp.configs,
     defaultScriptType: yyp.defaultScriptType,
     Folders: yyp.Folders.filter((f) => f["%Name"] === PACKAGE_ID),
-    ...(withPrefab ? { ForcedPrefabProjectReferences: [] } : {}),
+    ForcedPrefabProjectReferences: [],
     IncludedFiles: [],
     isEcma: yyp.isEcma,
     LibraryEmitters: [],
-    MetaData: withPrefab
-      ? { IDEVersion: ideVersion }
-      : {
-        IDEVersion: ideVersion,
-        PackageType: "Asset",
-        PackageName: PACKAGE_ID,
-        PackageID: PACKAGE_ID,
-        PackagePublisher: "gmclan.org",
-        PackageVersion: version,
-      },
+    MetaData: { IDEVersion: ideVersion },
     name: baseName,
     resources: libResources.map((r) => ({ id: { name: r.id.name, path: r.id.path } })),
     resourceType: "GMProject",
@@ -138,55 +109,53 @@ function main() {
     path.relative(stageDir, yypPath2),
   ];
 
-  // prefab.json, icon .png and yymanifest.xml - only for the GMPM prefab
-  // variant, matching GameMaker's own prefab .yymps layout. package.json is
-  // NOT part of the .yymps itself (GameMaker's own prefabs don't ship one
-  // inside the archive) - it's written as a sibling of stageDir instead, for
-  // the .tgz step to pick up.
-  if (withPrefab) {
-    const prefab = {
-      $PrefabMetadata: "v2",
-      Author: "gmclan.org",
-      Description: "gmfx_lib - Animation an tween library",
-      DisplayName: "gmfx_lib",
-      Exports: libResources.map((r) => ({
-        $PrefabExportMetadata: "v4",
-        AssetName: r.id.name,
-        Description: resourceTypeToDescription(readJson5(path.join(ROOT, r.id.path)).resourceType),
-        DisplayName: r.id.name,
-        FolderPath: PACKAGE_ID,
-        ResourceType: readJson5(path.join(ROOT, r.id.path)).resourceType,
-        ResourceVersion: 1,
-      })),
-      PackageId: GMPM_ID,
-      Version: version,
-    };
-    const prefabPath = path.join(stageDir, "prefab.json");
-    writeGmJson(prefabPath, prefab);
-    manifestFiles.push(path.relative(stageDir, prefabPath));
+  // prefab.json, package.json, icon .png and yymanifest.xml, matching
+  // GameMaker's own prefab .yymps layout.
+  const prefab = {
+    $PrefabMetadata: "v2",
+    Author: "gmclan.org",
+    Description: "gmfx_lib - Animation an tween library",
+    DisplayName: "gmfx_lib",
+    Exports: libResources.map((r) => ({
+      $PrefabExportMetadata: "v4",
+      AssetName: r.id.name,
+      Description: resourceTypeToDescription(readJson5(path.join(ROOT, r.id.path)).resourceType),
+      DisplayName: r.id.name,
+      FolderPath: PACKAGE_ID,
+      ResourceType: readJson5(path.join(ROOT, r.id.path)).resourceType,
+      ResourceVersion: 1,
+    })),
+    PackageId: GMPM_ID,
+    Version: version,
+  };
+  const prefabPath = path.join(stageDir, "prefab.json");
+  writeGmJson(prefabPath, prefab);
+  manifestFiles.push(path.relative(stageDir, prefabPath));
 
-    // package.json - copied from the repo root template, with version, the
-    // packaged .yymps filename, and the icon data refreshed from gm-prefab.png
-    // so the template file can't drift out of sync with the actual image.
-    // Written both inside stageDir (GameMaker's own IDE-exported prefab
-    // .yymps files ship package.json inside the archive - confirmed by
-    // comparing against one the IDE built directly) and as a sibling of
-    // stageDir, for the .tgz step to pick up.
-    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
-    pkg.version = version;
-    pkg.files = [`${GMPM_ID}-${version}.yymps`];
-    pkg.gm.icon.data = fs.readFileSync(path.join(ROOT, "gm-prefab.png")).toString("base64");
-    const pkgJson = JSON.stringify(pkg, null, 2) + "\n";
-    fs.writeFileSync(`${stageDir}.package.json`, pkgJson);
-    const pkgJsonInsidePath = path.join(stageDir, "package.json");
-    fs.writeFileSync(pkgJsonInsidePath, pkgJson);
-    manifestFiles.push(path.relative(stageDir, pkgJsonInsidePath));
+  // package.json - copied from the repo root template, with version, the
+  // packaged .yymps filename, and the icon data refreshed from gm-prefab.png
+  // so the template file can't drift out of sync with the actual image.
+  // Written both inside stageDir (GameMaker's own IDE-exported prefab
+  // .yymps files ship package.json inside the archive - confirmed by
+  // comparing against one the IDE built directly) and as a sibling of
+  // stageDir, for the .tgz step to pick up.
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+  pkg.version = version;
+  pkg.files = [`${GMPM_ID}-${version}.yymps`];
+  pkg.gm.icon = {
+    mime: "image/png",
+    data: fs.readFileSync(path.join(ROOT, "gm-prefab.png")).toString("base64"),
+  };
+  const pkgJson = JSON.stringify(pkg, null, 2) + "\n";
+  fs.writeFileSync(`${stageDir}.package.json`, pkgJson);
+  const pkgJsonInsidePath = path.join(stageDir, "package.json");
+  fs.writeFileSync(pkgJsonInsidePath, pkgJson);
+  manifestFiles.push(path.relative(stageDir, pkgJsonInsidePath));
 
-    // <package>.png - the icon, alongside package.json, as a standalone file.
-    const iconPath = path.join(stageDir, `${baseName}.png`);
-    fs.copyFileSync(path.join(ROOT, "gm-prefab.png"), iconPath);
-    manifestFiles.push(path.relative(stageDir, iconPath));
-  }
+  // <package>.png - the icon, alongside package.json, as a standalone file.
+  const iconPath = path.join(stageDir, `${baseName}.png`);
+  fs.copyFileSync(path.join(ROOT, "gm-prefab.png"), iconPath);
+  manifestFiles.push(path.relative(stageDir, iconPath));
 
   // copy each resource's folder (e.g. scripts/fx_animation/*) into the stage dir
   for (const r of libResources) {
@@ -204,9 +173,7 @@ function main() {
 
   // yymanifest.xml - lists every packaged file with its MD5 checksum, written
   // last since it must cover every other file already staged.
-  if (withPrefab) {
-    writeYyManifest(path.join(stageDir, "yymanifest.xml"), stageDir, manifestFiles);
-  }
+  writeYyManifest(path.join(stageDir, "yymanifest.xml"), stageDir, manifestFiles);
 
   console.log(`Staged package contents in ${stageDir}`);
 }

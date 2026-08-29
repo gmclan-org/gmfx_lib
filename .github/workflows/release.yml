@@ -23,14 +23,6 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Stage .yymps package contents
-        run: node .github/scripts/stage-yymps.js "${{ steps.version.outputs.version }}" stage/gmfx_lib
-
-      - name: Zip .yymps package
-        run: |
-          cd stage/gmfx_lib
-          zip -r -X -D "../../gmfx_lib.yymps" .
-
       - name: Stage prefab .yymps package contents
         run: node .github/scripts/stage-yymps.js "${{ steps.version.outputs.version }}" stage/gmfx_lib-prefab --with-prefab
 
@@ -54,7 +46,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            gmfx_lib.yymps
             org.gmclan.gmfx_lib-${{ steps.version.outputs.version }}.yymps
             org.gmclan.gmfx_lib-${{ steps.version.outputs.version }}.tgz
           generate_release_notes: true
+
+      - name: Trigger GMPM Sync
+        run: |
+          BODY='{"gh_user":"${{ github.repository_owner }}","gh_repo":"${{ github.event.repository.name }}"}'
+          SIG="sha256=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "${{ secrets.WEBHOOK_SECRET }}" | sed 's/^.* //')"
+          curl -X POST "http://gmpm.gmclan.org/webhook.php" \
+            -H "Content-Type: application/json" \
+            -H "X-Hub-Signature-256: $SIG" \
+            -d "$BODY"
