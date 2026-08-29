@@ -95,16 +95,18 @@ function main() {
 
   // <package>.yyp - the GMPM prefab variant matches the shape GameMaker's own
   // installed prefabs have on disk (e.g. com.eightouncegames.cultured-runtime):
-  // no Folders, a ForcedPrefabProjectReferences key, and a MetaData with only
-  // IDEVersion. A .yyp missing these didn't error, installed fine via GMPM,
-  // but silently never showed up in the IDE's Prefabs list.
+  // a ForcedPrefabProjectReferences key and a MetaData with only IDEVersion.
+  // Folders must NOT be emptied for the prefab variant - prefab.json's
+  // Exports[].FolderPath references it, and the IDE resolves prefabs against
+  // this Folders list ("Could not find package X in the dependency graph" in
+  // ui.log when it's missing).
   const packageYyp = {
     $GMProject: "v1",
     "%Name": baseName,
     AudioGroups: yyp.AudioGroups,
     configs: yyp.configs,
     defaultScriptType: yyp.defaultScriptType,
-    Folders: withPrefab ? [] : yyp.Folders.filter((f) => f["%Name"] === PACKAGE_ID),
+    Folders: yyp.Folders.filter((f) => f["%Name"] === PACKAGE_ID),
     ...(withPrefab ? { ForcedPrefabProjectReferences: [] } : {}),
     IncludedFiles: [],
     isEcma: yyp.isEcma,
