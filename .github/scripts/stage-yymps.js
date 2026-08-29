@@ -114,13 +114,13 @@ function main() {
     MetaData: withPrefab
       ? { IDEVersion: ideVersion }
       : {
-          IDEVersion: ideVersion,
-          PackageType: "Asset",
-          PackageName: PACKAGE_ID,
-          PackageID: PACKAGE_ID,
-          PackagePublisher: "gmclan.org",
-          PackageVersion: version,
-        },
+        IDEVersion: ideVersion,
+        PackageType: "Asset",
+        PackageName: PACKAGE_ID,
+        PackageID: PACKAGE_ID,
+        PackagePublisher: "gmclan.org",
+        PackageVersion: version,
+      },
     name: baseName,
     resources: libResources.map((r) => ({ id: { name: r.id.name, path: r.id.path } })),
     resourceType: "GMProject",
@@ -147,8 +147,8 @@ function main() {
     const prefab = {
       $PrefabMetadata: "v2",
       Author: "gmclan.org",
-      Description: "gmfx_lib animation lib",
-      DisplayName: "gmfx_lib animation lib",
+      Description: "gmfx_lib - Animation an tween library",
+      DisplayName: "gmfx_lib",
       Exports: libResources.map((r) => ({
         $PrefabExportMetadata: "v4",
         AssetName: r.id.name,
